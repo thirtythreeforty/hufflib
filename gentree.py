@@ -24,15 +24,38 @@ class Tree:
 		global treeNonce
 		self.child1 = c1
 		self.child2 = c2
-		if(self.child1 != None):
+		if(self.child1 is not None):
 			self.child1.parent = self
-		if(self.child2 != None):
+			self.child1.whichChild = 0
+		if(self.child2 is not None):
 			self.child2.parent = self
+			self.child2.whichChild = 1
 		self.parent = None
+		self.whichChild = None
 		self.weight = weight
 		self.nonce = treeNonce
 		treeNonce += 1
 		self.byte = byte
+
+	def Compressed(self):
+		if self.parent is None:
+			# Base case
+			return ""
+		s = self.parent.Compressed() + str(self.whichChild)
+		if self.child1 is None and self.child2 is None:
+			print(self.nonce, s, file=sys.stderr)
+			# Split the string into bytes of 8 bits
+			l = [s[i:i + 8] for i in range(len(s) // 8)]
+			if len(s) % 8 != 0:
+				l.append((s[-(len(s) % 8):] + "0000000")[0:8])
+
+			# Build the output
+			formatted = "\t.db " + hex(len(s)) + "\n"
+			for byte in l:
+				formatted += "\t.db 0b" + byte + "\n"
+			return formatted
+		else:
+			return s
 
 	def __str__(self):
 		# Header
@@ -44,18 +67,11 @@ class Tree:
 			treeType += 2
 		if self.child1 == None and self.child2 == None:
 			treeType += 1
-		s += "\t.db " + str(treeType) + "\n"
-
-		# Parent
-		s += "\t.dw "
-		if self.parent == None:
-			s += "0\n"
-		else:
-			s += "tree" + str(self.parent.nonce) + "\n"
+		s += "\t.db " + bin(treeType) + "\n"
 
 		# Data
 		if self.child1 == None and self.child2 == None:
-			s += "\t.db " + str(self.byte) + "\n"
+			s += "\t.db " + hex(self.byte) + "\n"
 		else:
 			s += "\t.dw tree" + str(self.child1.nonce) + ", tree" + str(self.child2.nonce) + "\n"
 			s += str(self.child1) + str(self.child2)
@@ -75,6 +91,8 @@ def main():
 		forest[ch].weight += 1
 		ch = sys.stdin.buffer.read(1)
 
+	leaves = [leaf for leaf in forest]
+
 	# Build the Huffman tree
 	while len(forest) > 1:
 		forest.sort()
@@ -87,6 +105,11 @@ def main():
 
 	print("leafTable:")
 	for i in range(256):
-		print("\t.dw tree" + str(i))
+		print("\t.dw leaf" + str(i))
+
+	for i in range(256):
+		print("leaf" + str(i) + ":")
+		print(leaves[i].Compressed())
+
 
 main()

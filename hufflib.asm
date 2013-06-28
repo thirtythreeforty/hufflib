@@ -38,6 +38,10 @@ setUpOffsets:
 _:	pop ix
 	call memSeekToStart
 	push ix \ pop de
+	ild(hl, offsetNeeded1)
+	ld (hl), e
+	inc hl
+	ld (hl), d
 	ild(hl, offsetNeeded2)
 	ld (hl), e
 	inc hl
@@ -59,8 +63,99 @@ _:	pop ix
 ;;  DE: Location of compressed data
 ;;  BC: Size of uncompressed data
 ;; Outputs:
-;;  BC: Size of compressed data
+;;  BC: Size of compressed data, including header
 huff:
+	push af
+	push ix
+	push hl
+	push de
+		; Store header
+		ex de, hl
+		ld (hl), c \ inc hl \ ld (hl), b \ inc hl
+		ld (hl), 0 \ inc hl	; Tree choosing not implemented
+		ex de, hl
+		push de
+			; Set up compression state
+			ld de, 0x00FF
+.nextByte:
+			; Check to ensure bytes are left, from BC
+			ld a, b \ or c \ jr z, .done
+
+			push hl
+				; Get a byte
+				ld l, (hl)
+				dec bc
+
+				; Calculate offset in leaf table, into IX
+				xor a \ sla l \ rla \ ld h, a
+				push de
+					ild(de, leafTable)
+					add hl, de
+				pop de
+			  ex (sp), hl
+			pop ix
+			inc hl
+
+			; (IX) + offset -> IX
+			push hl
+				ld l, (ix + 0)
+				ld h, (ix + 1)
+				push de
+offsetNeeded1 .equ $ + 1
+					ld de, 0x0000
+					add hl, de
+				pop de
+			  ex (sp), hl
+			pop ix
+
+		  ex (sp), hl				; destination into HL
+			push bc
+				ld b, (ix)			; Number of bits in Huffman form of byte
+				inc b				; Account for djnz after jumping to .start
+				jr .start
+_:				rlca
+				rl d
+
+				srl e
+				jr nz, _
+				; Store a byte
+				ld (hl), d
+				inc hl
+				ld de, 0x00FF
+
+_:				srl c
+				jr nz, _
+.start:
+				; Read next byte from table
+				ld a, (ix + 1)
+				inc ix
+				ld c, 0xFF
+
+_:				djnz ---_
+			pop bc
+		  ex (sp), hl	; destination onto stack
+			jr .nextByte
+
+.done:
+		; Store last partial byte, padded with zeros
+		pop hl
+		ld a, e
+		cp 0xFF			; Don't want to store a whole extra byte!  It would be wrong.
+		jr z, ++_
+_:		sla d
+		srl e
+		jr nz, -_
+		ld (hl), d
+		inc hl
+
+	; Calculate compressed data's size, into BC
+_:	pop de
+	xor a
+	sbc hl, de
+  ex (sp), hl
+	pop bc
+	pop ix
+	pop af
 	ret
 
 ;; unhuff
@@ -106,8 +201,8 @@ _:		pop af
 		inc ix
 		inc ix
 _:		push hl
-			ld l, (ix + 3)
-			ld h, (ix + 4)
+			ld l, (ix + 1)
+			ld h, (ix + 2)
 			push de
 offsetNeeded2 .equ $ + 1
 				ld de, 0x0000
@@ -120,7 +215,7 @@ offsetNeeded2 .equ $ + 1
 		jr z, .nextBit
 
 		; Leaf!  Handle it.
-		ld a, (ix + 3)
+		ld a, (ix + 1)
 		ex (sp), hl
 		ld (hl), a
 		inc hl
