@@ -183,9 +183,9 @@ unhuff:
 		ild(ix, tree)		; Root of tree into IX
 
 		; Check to ensure bytes are left
-.nextBit:
 		ld a, b \ or c \ jr z, .done
 
+.nextBit:
 		; Get a bit
 		sla d
 		push af
