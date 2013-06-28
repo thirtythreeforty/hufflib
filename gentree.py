@@ -18,10 +18,14 @@
 
 import sys
 
-treeNonce = 0
 class Tree:
+	def nonceGen():
+		i = 0
+		while True:
+			yield i; i += 1
+	nonce = nonceGen()
+
 	def __init__(self, c1 = None, c2 = None, byte = -1, weight = 0):
-		global treeNonce
 		self.child1 = c1
 		self.child2 = c2
 		if(self.child1 is not None):
@@ -33,8 +37,7 @@ class Tree:
 		self.parent = None
 		self.whichChild = None
 		self.weight = weight
-		self.nonce = treeNonce
-		treeNonce += 1
+		self.nonce = next(Tree.nonce)
 		self.byte = byte
 
 	def Compressed(self):
@@ -43,7 +46,6 @@ class Tree:
 			return ""
 		s = self.parent.Compressed() + str(self.whichChild)
 		if self.child1 is None and self.child2 is None:
-			print(self.nonce, s, file=sys.stderr)
 			# Split the string into bytes of 8 bits
 			l = [s[i:i + 8] for i in range(len(s) // 8)]
 			if len(s) % 8 != 0:
@@ -63,14 +65,14 @@ class Tree:
 
 		# Type
 		treeType = 0
-		if self.parent == None:
-			treeType += 2
-		if self.child1 == None and self.child2 == None:
-			treeType += 1
+		if self.parent is None:
+			treeType += 0b10
+		if self.child1 is None and self.child2 is None:
+			treeType += 0b01
 		s += "\t.db " + bin(treeType) + "\n"
 
 		# Data
-		if self.child1 == None and self.child2 == None:
+		if self.child1 is None and self.child2 is None:
 			s += "\t.db " + hex(self.byte) + "\n"
 		else:
 			s += "\t.dw tree" + str(self.child1.nonce) + ", tree" + str(self.child2.nonce) + "\n"
@@ -82,16 +84,15 @@ class Tree:
 	def __lt__(self, other):
 		return self.weight < other.weight
 
+
 def main():
 	forest = [Tree(byte = i, weight = 0) for i in range(256)]
+	leaves = [leaf for leaf in forest]
 
 	ch = sys.stdin.buffer.read(1)
 	while ch != b'':
-		ch = ord(ch)
-		forest[ch].weight += 1
+		forest[ord(ch)].weight += 1
 		ch = sys.stdin.buffer.read(1)
-
-	leaves = [leaf for leaf in forest]
 
 	# Build the Huffman tree
 	while len(forest) > 1:
@@ -106,10 +107,8 @@ def main():
 	print("leafTable:")
 	for i in range(256):
 		print("\t.dw leaf" + str(i))
-
 	for i in range(256):
 		print("leaf" + str(i) + ":")
 		print(leaves[i].Compressed())
-
 
 main()
