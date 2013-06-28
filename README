@@ -1,15 +1,17 @@
 Hufflib is a Huffman compression/decompression library for KnightOS, a 3rd party OS for TI
 calculators.  It uses a precomputed Huffman tree due to the limitations of the TI platform (and
-because the size of the data being compressed is usually small).  It achieves good compression
-ratios with a reasonably fast decompression speed and constant memory usage (around 3 or 4 KB).
+because the data being compressed is usually much smaller than the stored tree would be).
+It achieves decent compression ratios with a reasonably fast decompression speed and constant
+memory usage (around 3 or 4 KB). More importantly, it can be targeted toward a specific type of
+data, such as code or text, to optimize compression ratios.
 
 To build the library, follow these steps:
 
 The library uses a precomputed tree which can be generated with gentree.py.  First you must put
 some reference files into the sources/ directory; these are analyzed by the script to determine
-the optimal compression algorithm to use.  Good things to use are KnightOS userland binaries,
-a large text document, etc.  (Data files will ultimately be distributed with hufflib.)
-Then, the simplest way to invoke the script is to simply run
+the optimal Huffman tree to use.  Good things to use are KnightOS userland binaries, a large text
+document, etc, depending upon the target data type.  (Sample data files will ultimately be
+distributed with hufflib.) Then, the simplest way to invoke the script is to simply run
 
     make hufftree.asm
 
@@ -28,4 +30,4 @@ Then, apply the patch makefile.patch to the main KnightOS Makefile (suitably cha
 
     git apply makefile.patch
 
-and rebuild KnightOS.
+and rebuild KnightOS with make.
