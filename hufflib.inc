@@ -26,3 +26,4 @@ hufflibId .equ 0x60
 ; Routines
 huff .equ 6
 unhuff .equ 9
+huffCalculateCompressedSize .equ 12

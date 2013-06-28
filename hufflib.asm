@@ -28,6 +28,7 @@ jumpTable:
     ret \ nop \ nop
     jp huff
     jp unhuff
+    jp huffCalculateCompressedSize
     .db 0xFF
 
 setUpOffsets:
@@ -81,32 +82,7 @@ huff:
 			; Check to ensure bytes are left, from BC
 			ld a, b \ or c \ jr z, .done
 
-			push hl
-				; Get a byte
-				ld l, (hl)
-				dec bc
-
-				; Calculate offset in leaf table, into IX
-				xor a \ sla l \ rla \ ld h, a
-				push de
-					ild(de, leafTable)
-					add hl, de
-				pop de
-			  ex (sp), hl
-			pop ix
-			inc hl
-
-			; (IX) + offset -> IX
-			push hl
-				ld l, (ix + 0)
-				ld h, (ix + 1)
-				push de
-offsetNeeded1 .equ $ + 1
-					ld de, 0x0000
-					add hl, de
-				pop de
-			  ex (sp), hl
-			pop ix
+			icall(gotoByteEntry)
 
 		  ex (sp), hl				; destination into HL
 			push bc
@@ -231,5 +207,92 @@ offsetNeeded2 .equ $ + 1
 	pop hl
 	pop af
 	ret
+
+;; huffCalculateCompressedSize
+;;  Calculates the size of data resulting from a Huffman
+;;  compression, but does not perform any compression.
+;;  Note: a companion routine is not supplied for
+;;  decompressed size calculation; that information is
+;;  stored in the header of a compressed block.
+;; Inputs:
+;;  HL: Data to compress
+;;  BC: Size of uncompressed data
+;; Outputs:
+;;  BC: Size of compressed data
+huffCalculateCompressedSize:
+	push af
+	push ix
+	push hl
+	push de
+		ld e, 0					; High word of dword size in bits
+		push de					; (don't actually care about high byte)
+			ld de, 24			; Size of header in bits (low word of dword)
+.nextByte:
+			; Check to ensure bytes are left, from BC
+			ld a, b \ or c \ jr z, .done
+
+			icall(gotoByteEntry)
+
+			xor a
+			push hl				; Add number of bits to low word
+				ex de, hl
+				ld e, (ix)
+				ld d, a
+				add hl, de
+				ex de, hl
+			pop hl
+		  ex (sp), hl			; High word into HL
+			adc a, l
+			ld l, a
+		  ex (sp), hl
+			jr .nextByte
+.done:
+		pop hl
+		; Divide LDE by 8, add 1 if there is a remainder
+		xor a
+		srl l \ rr d \ rr e \ rla
+		srl l \ rr d \ rr e \ rla
+		srl l \ rr d \ rr e \ rla
+		or a \ jr z, $ + 3 \ inc de
+		push de \ pop bc
+	pop de
+	pop hl
+	pop ix
+	pop af
+	ret
+
+; gotoByteEntry: Helper routine for compressor and calculator.
+; Gets a byte from HL, increments HL, decrements BC, and sets
+; IX to the address of the byte's leaf entry.  Destroys AF.
+gotoByteEntry:
+	push hl
+		; Get a byte
+		ld l, (hl)
+		dec bc
+
+		; Calculate offset in leaf table, into IX
+		xor a \ sla l \ rla \ ld h, a
+		push de
+			ild(de, leafTable)
+			add hl, de
+		pop de
+		ex (sp), hl
+	pop ix
+	inc hl
+
+	; (IX) + offset -> IX
+	push hl
+		ld l, (ix + 0)
+		ld h, (ix + 1)
+		push de
+offsetNeeded1 .equ $ + 1
+			ld de, 0x0000
+			add hl, de
+		pop de
+		ex (sp), hl
+	pop ix
+	ret
+
+.echo "Size of hufflib routines: " $ " bytes"
 
 #include "hufftree.asm"
