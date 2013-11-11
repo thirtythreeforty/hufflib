@@ -3,7 +3,7 @@ precomputed Huffman tree due to the limitations of the TI platform (and because 
 
 To build the library, follow these steps:
 
-The library uses a precomputed tree which can be generated with gentree.py.  First you must put some reference files into the sources/ directory; these are analyzed by the script to determine the optimal Huffman tree to use.  Good things to use are KnightOS userland binaries, a large text document, etc, depending upon the target data type.  (Sample data files will ultimately be distributed with hufflib.) Then, the simplest way to invoke the script is to simply run 
+The library uses a precomputed tree which can be generated with `gentree.py`.  Files in the `sources/` directory are analyzed by the script to determine the optimal Huffman tree to use.  Currently, there are several precompiled KnightOS userland binaries, but they can be replaced by a large text document, etc, depending upon the target data type.  Then, the simplest way to invoke the script is to simply run
 
     make hufftree.asm
 
@@ -14,8 +14,10 @@ To build hufflib itself, you need to copy it to within the KnightOS source tree 
 - hufftree.asm      packages/hufflib
 - hufflib.inc       inc/
 
-Then, apply the patch makefile.patch to the main KnightOS Makefile (suitably change the path):
+Then, apply the patch `makefile.patch` to the main KnightOS Makefile (suitably change the path):
 
     git apply makefile.patch
 
 and rebuild KnightOS with `make`.
+
+Of course, hufflib is free software, released under the GNU LGPLv3 or later; its license can be found in `COPYING.hufflib`.  The generator script is licensed under the GPLv3 or later, its license is in `COPYING.gentree`.  Lastly, the precompiled KnightOS binaries are MIT licensed; their license is in the file `COPYING.binaries`.
