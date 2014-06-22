@@ -37,7 +37,7 @@ setUpOffsets:
 	push de
 	icall(_)
 _:	pop ix
-	call memSeekToStart
+	pcall(memSeekToStart)
 	push ix \ pop de
 	ild(hl, offsetNeeded1)
 	ld (hl), e
@@ -293,6 +293,6 @@ offsetNeeded1 .equ $ + 1
 	pop ix
 	ret
 
-.echo "Size of hufflib routines: " $ " bytes"
+.echo "Size of hufflib routines: {0} bytes" $
 
 #include "hufftree.asm"
