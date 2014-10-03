@@ -3,7 +3,10 @@ LIBDIR:=$(OUTDIR)lib/
 INCDIR:=$(OUTDIR)include/
 ETCDIR:=$(OUTDIR)etc/
 
-all: $(LIBDIR)huff $(INCDIR)hufflib.inc
+all: package
+
+package: $(LIBDIR)huff $(INCDIR)hufflib.inc
+	kpack hufflib-0.1.0.pkg $(OUTDIR)
 
 $(LIBDIR)huff: hufftree.asm hufflib.asm
 	mkdir -p $(LIBDIR)
@@ -18,5 +21,9 @@ $(INCDIR)hufflib.inc:
 
 clean:
 	rm -rf $(OUTDIR) hufftree.asm
+	rm -rf hufflib-0.1.0.pkg
+
+install: package
+	kpack -e -s hufflib-0.1.0.pkg $(PREFIX)
 
 .PHONY: all clean
